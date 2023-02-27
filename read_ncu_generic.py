@@ -41,10 +41,14 @@ with open(csv_file, newline='') as csvfile:
                 # based on GPU model and operation datatype we decide the performance factor based on this issue in nsight compute:
                 # https://forums.developer.nvidia.com/t/why-the-compute-throughputs-value-is-different-from-the-actual-performance-peak-performance/227563
                 # from the datasheet I found these factors.
+                # also the L1 BW calc was wrong as per this issue https://forums.developer.nvidia.com/t/confused-about-the-l1-smem-bw-reported-by-nsight-compute-hierarchical-roofline-plots/232524/3
+                # so i took the fixed numbers from datasheets
                 if row[4].find('turing') > -1:
                     print("turing")
                     sf = 512
+                    peakl1_BW =  14*1024*1024*1024*1024
                 elif row[4].find('ampere') > -1 or row[4].find('sm80') > -1:
+                    peakl1_BW =  19*1024*1024*1024*1024
                     if row[4].find('int8') > -1 or row[4].find('imma') > -1:
                         sf = 4096
                     else:
@@ -113,7 +117,6 @@ with open(csv_file, newline='') as csvfile:
                 peakl1cyclespersecond = row[L1CyclesPerSecond_index]
                 fout.write("peak l1cycles Giga per second: "+ str(float(peakl1cyclespersecond.replace(",",""))*1e-9))
                 fout.write("\n=======================================================================================\n")
-                peakl1_BW =  19*1024*1024*1024*1024
                 #peakl1_BW =  float(peakl1bytes.replace(",","")) * float(peakl1cyclespersecond.replace(",",""))
                 fout.write("peak l1 BW GB/s: " + str(peakl1_BW*1e-9))
                 fout.write("\n=======================================================================================\n")
