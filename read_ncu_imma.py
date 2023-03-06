@@ -1,27 +1,38 @@
 import csv
 import pdb
 import argparse
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--m', action='store', default='4096',type=int)
 parser.add_argument('--n', action='store', default='4096',type=int)
 parser.add_argument('--k', action='store', default='4096',type=int)
 parser.add_argument('--csv', action='store', default='log_imma.csv')
-parser.add_argument('--out', action='store', default='out_imma.txt')
+parser.add_argument('--log', action='store', default='out_imma.log')
+parser.add_argument('--out', action='store', default='out_imma.csv')
 
 args = parser.parse_args()
 
 csv_file = args.csv
+log_file = args.log
 out_file = args.out
 m=args.m
 n=args.n
 k=args.k
-fout = open(out_file, "w")
-fout.write("m="+str(m)+", n="+str(n)+", k="+str(k)+"\n")
+flog = open(log_file, "w")
+flog.write("m="+str(m)+", n="+str(n)+", k="+str(k)+"\n")
+
+if Path(out_file).is_file():
+    fout = open(out_file, "a")
+else:
+    fout = open(out_file, "w")
+    fout.write("m,n,k,mem-bound-l1,mem-bound-l2,mem-bound-dram,op-byte-l1,op-byte-l2,op-byte-dram,bw-l1,bw-l2,bw-dram,ridge-l1,ridge-l2,ridge-dram\n")
+ 
 with open(csv_file, newline='') as csvfile:
     reader = csv.reader(csvfile, delimiter=',')
     for row in reader:
-        if len(row)>4:
+        if len(row)>26:
+            #import pdb; pdb.set_trace()
             if row[0].find('ID') > -1:
                 PeakWorkPerCycle_index = row.index('sm__inst_executed_pipe_tensor_op_imma.sum.peak_sustained')
                 CyclePerSecond_index = row.index('sm__cycles_elapsed.avg.per_second')
@@ -57,82 +68,92 @@ with open(csv_file, newline='') as csvfile:
                 else:
                     peakl1_BW = 14*1024*1024*1024*1024
                     sf = 512
-                fout.write("perf scaling factor: "+str(sf)+"\n")
-                fout.write("kernel name: " + row[4])
-                fout.write("\n=======================================================================================\n")
+                flog.write("perf scaling factor: "+str(sf)+"\n")
+                flog.write("kernel name: " + row[4])
+                flog.write("\n=======================================================================================\n")
                 peakperfpercycle = row[PeakWorkPerCycle_index]
-                fout.write("peak perf per cycle: "+peakperfpercycle.replace(",","") )
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak perf per cycle: "+peakperfpercycle.replace(",","") )
+                flog.write("\n=======================================================================================\n")
                 peakworkcyclespersecond = row[CyclePerSecond_index]
-                fout.write("peak work Giga cycle per second: "+str(float(peakworkcyclespersecond.replace(",",""))*1e-9))
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak work Giga cycle per second: "+str(float(peakworkcyclespersecond.replace(",",""))*1e-9))
+                flog.write("\n=======================================================================================\n")
                 peak_perf = float(peakperfpercycle.replace(",","")) * float(peakworkcyclespersecond.replace(",",""))*sf
-                fout.write("peak performance TFLOPS: "+str(peak_perf*1e-12))
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak performance TFLOPS: "+str(peak_perf*1e-12))
+                flog.write("\n=======================================================================================\n")
                 peakdrambytes = row[PeakDRAMPerCycle_index]
-                fout.write("peak dram bytes per cycle: "+peakdrambytes.replace(",",""))
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak dram bytes per cycle: "+peakdrambytes.replace(",",""))
+                flog.write("\n=======================================================================================\n")
                 peakdramcyclespersecond = row[DRAMCyclesPerSecond_index]
-                fout.write("peak dram Giga cycles per second: "+ str(float(peakdramcyclespersecond.replace(",",""))*1e-9)) 
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak dram Giga cycles per second: "+ str(float(peakdramcyclespersecond.replace(",",""))*1e-9)) 
+                flog.write("\n=======================================================================================\n")
 
                 peak_BW = float(peakdrambytes.replace(",","")) * float(peakdramcyclespersecond.replace(",",""))
-                fout.write("peak dram BW GB/s: " + str(peak_BW*1e-9))
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak dram BW GB/s: " + str(peak_BW*1e-9))
+                flog.write("\n=======================================================================================\n")
                 achievedworkpercycle = row[AchievedWorkPerCyclesIMMA_index]
-                fout.write("Achieved work per TC per cycle: "+ achievedworkpercycle.replace(",",""))
-                fout.write("\n=======================================================================================\n")
+                flog.write("Achieved work per TC per cycle: "+ achievedworkpercycle.replace(",",""))
+                flog.write("\n=======================================================================================\n")
                 achievedcyclespersecond = row[AchievedCyclesPerSecond_index]
-                fout.write("Achieved Giga cycles per second: "+ str(float(achievedcyclespersecond.replace(",",""))*1e-9))
-                fout.write("\n=======================================================================================\n")
+                flog.write("Achieved Giga cycles per second: "+ str(float(achievedcyclespersecond.replace(",",""))*1e-9))
+                flog.write("\n=======================================================================================\n")
                 achievedtraffic = row[AchievedDRAMTraffic_index]
-                fout.write("DRAM level achieved traffic (data rate in Giga byte per second) "+ str(float(achievedtraffic.replace(",",""))*1e-9))
-                fout.write("\n=======================================================================================\n")
+                flog.write("DRAM level achieved traffic (data rate in Giga byte per second) "+ str(float(achievedtraffic.replace(",",""))*1e-9))
+                flog.write("\n=======================================================================================\n")
                 kernel_perf = float(achievedworkpercycle.replace(",","")) * float(achievedcyclespersecond.replace(",",""))*sf
-                fout.write("kernel performance (TFLOPS): "+ str(kernel_perf*1e-12))
-                fout.write("\n=======================================================================================\n")
+                flog.write("kernel performance (TFLOPS): "+ str(kernel_perf*1e-12))
+                flog.write("\n=======================================================================================\n")
                 ridge_point = peak_perf / peak_BW
-                fout.write("DRAM level ridge point : "+ str(ridge_point))
-                fout.write("\n=======================================================================================\n")
+                flog.write("DRAM level ridge point : "+ str(ridge_point))
+                flog.write("\n=======================================================================================\n")
                 arithmetic_intensity = kernel_perf / float(achievedtraffic.replace(",",""))
-                fout.write("DRAM level arithmetic intensity (Op/Byte): "+ str(arithmetic_intensity))
-                fout.write("\n=======================================================================================\n")
+                flog.write("DRAM level arithmetic intensity (Op/Byte): "+ str(arithmetic_intensity))
+                flog.write("\n=======================================================================================\n")
                 peakl2bytes = row[PeakL2PerCycle_index]
-                fout.write("peak l2 bytes per cycle: "+peakl2bytes.replace(",",""))
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak l2 bytes per cycle: "+peakl2bytes.replace(",",""))
+                flog.write("\n=======================================================================================\n")
                 peakl2cyclespersecond = row[L2CyclesPerSecond_index]
-                fout.write("peak l2 Giga cycles per second: "+ str(float(peakl2cyclespersecond.replace(",",""))*1e-9))
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak l2 Giga cycles per second: "+ str(float(peakl2cyclespersecond.replace(",",""))*1e-9))
+                flog.write("\n=======================================================================================\n")
                 peakl2_BW =  float(peakl2bytes.replace(",","")) * float(peakl2cyclespersecond.replace(",",""))
-                fout.write("peak l2 BW GB/s: " + str(peakl2_BW*1e-9))
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak l2 BW GB/s: " + str(peakl2_BW*1e-9))
+                flog.write("\n=======================================================================================\n")
                 achievedl2traffic = row[AchievedL2Traffic_index]
-                fout.write("l2 level achieved traffic (data rate in Giga byte per second) "+ str(float(achievedl2traffic.replace(",",""))*1e-9))
-                fout.write("\n=======================================================================================\n")
+                flog.write("l2 level achieved traffic (data rate in Giga byte per second) "+ str(float(achievedl2traffic.replace(",",""))*1e-9))
+                flog.write("\n=======================================================================================\n")
                 ridge_point_l2 = peak_perf / peakl2_BW
-                fout.write("l2 level ridge point : "+ str(ridge_point_l2))
-                fout.write("\n=======================================================================================\n")
+                flog.write("l2 level ridge point : "+ str(ridge_point_l2))
+                flog.write("\n=======================================================================================\n")
                 arithmetic_intensity_l2 = kernel_perf / float(achievedl2traffic.replace(",",""))
-                fout.write("l2 level arithmetic intensity (Op/Byte): "+ str(arithmetic_intensity_l2))
-                fout.write("\n=======================================================================================\n")
+                flog.write("l2 level arithmetic intensity (Op/Byte): "+ str(arithmetic_intensity_l2))
+                flog.write("\n=======================================================================================\n")
                 peakl1bytes = row[PeakL1PerCycle_index]	
-                fout.write("peak l1 bytes per cycle: "+peakl1bytes.replace(",",""))
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak l1 bytes per cycle: "+peakl1bytes.replace(",",""))
+                flog.write("\n=======================================================================================\n")
                 peakl1cyclespersecond = row[L1CyclesPerSecond_index]
-                fout.write("peak l1cycles Giga per second: "+ str(float(peakl1cyclespersecond.replace(",",""))*1e-9))
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak l1cycles Giga per second: "+ str(float(peakl1cyclespersecond.replace(",",""))*1e-9))
+                flog.write("\n=======================================================================================\n")
                 #peakl1_BW =  float(peakl1bytes.replace(",","")) * float(peakl1cyclespersecond.replace(",",""))
-                fout.write("peak l1 BW GB/s: " + str(peakl1_BW*1e-9))
-                fout.write("\n=======================================================================================\n")
+                flog.write("peak l1 BW GB/s: " + str(peakl1_BW*1e-9))
+                flog.write("\n=======================================================================================\n")
                 achievedl1traffic = row[AchievedL1Traffic_index]
-                fout.write("l1 level achieved traffic (data rate in Giga byte per second) "+ str(float(achievedl1traffic.replace(",",""))*1e-9))
-                fout.write("\n=======================================================================================\n")
+                flog.write("l1 level achieved traffic (data rate in Giga byte per second) "+ str(float(achievedl1traffic.replace(",",""))*1e-9))
+                flog.write("\n=======================================================================================\n")
                 ridge_point_l1 = peak_perf / peakl1_BW
-                fout.write("l1 level ridge point : "+ str(ridge_point_l1))
-                fout.write("\n=======================================================================================\n")
+                flog.write("l1 level ridge point : "+ str(ridge_point_l1))
+                flog.write("\n=======================================================================================\n")
                 arithmetic_intensity_l1 = kernel_perf / float(achievedl1traffic.replace(",",""))
-                fout.write("l1 level arithmetic intensity (Op/Byte): "+ str(arithmetic_intensity_l1))
-                fout.write("\n=======================================================================================\n")
-fout.close()	
+                flog.write("l1 level arithmetic intensity (Op/Byte): "+ str(arithmetic_intensity_l1))
+                flog.write("\n=======================================================================================\n")
+
+                fout.write(str(m) + ", " + str(n) + ", " + str(k) + ", " + str(arithmetic_intensity_l1 < ridge_point_l1) + ", " \
+                           + str(arithmetic_intensity_l2 < ridge_point_l2) + ", " + str(arithmetic_intensity < ridge_point) + ", "\
+                        #   + str(arithmetic_intensity_l1) + "," + str(arithmetic_intensity_l2) + "," + str(arithmetic_intensity) + ","\
+                          + "{:.2f}, {:.2f}, {:.2f}".format(arithmetic_intensity_l1, arithmetic_intensity_l2, arithmetic_intensity) + ", "\
+                        #   + str(peakl1_BW) + "," + str(peakl2_BW) + "," + str(peak_BW) + "," \
+                          + "{:.2f}, {:.2f}, {:.2f}".format(peakl1_BW*1e-9, peakl2_BW*1e-9, peak_BW*1e-9) + ", " \
+                        #   + str(ridge_point_l1) + "," + str(ridge_point_l2) + "," + str(ridge_point) + "\n" )
+                          + "{:.2f}, {:.2f}, {:.2f}".format(ridge_point_l1, ridge_point_l2, ridge_point) + "\n")
+flog = open(log_file, "w")
+flog.close()	
 
 
