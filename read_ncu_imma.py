@@ -26,7 +26,7 @@ if Path(out_file).is_file():
     fout = open(out_file, "a")
 else:
     fout = open(out_file, "w")
-    fout.write("m,n,k,mem-bound-l1,mem-bound-l2,mem-bound-dram,op-byte-l1,op-byte-l2,op-byte-dram,bw-l1,bw-l2,bw-dram,ridge-l1,ridge-l2,ridge-dram\n")
+    fout.write("m,n,k,mem-bound-l1,mem-bound-l2,mem-bound-dram,perf(tflops),op-byte-l1,op-byte-l2,op-byte-dram,bw-l1,bw-l2,bw-dram,ridge-l1,ridge-l2,ridge-dram\n")
  
 with open(csv_file, newline='') as csvfile:
     reader = csv.reader(csvfile, delimiter=',')
@@ -132,7 +132,7 @@ with open(csv_file, newline='') as csvfile:
                 peakl1cyclespersecond = row[L1CyclesPerSecond_index]
                 flog.write("peak l1cycles Giga per second: "+ str(float(peakl1cyclespersecond.replace(",",""))*1e-9))
                 flog.write("\n=======================================================================================\n")
-                #peakl1_BW =  float(peakl1bytes.replace(",","")) * float(peakl1cyclespersecond.replace(",",""))
+                peakl1_BW =  float(peakl1bytes.replace(",","")) * float(peakl1cyclespersecond.replace(",",""))
                 flog.write("peak l1 BW GB/s: " + str(peakl1_BW*1e-9))
                 flog.write("\n=======================================================================================\n")
                 achievedl1traffic = row[AchievedL1Traffic_index]
@@ -145,15 +145,15 @@ with open(csv_file, newline='') as csvfile:
                 flog.write("l1 level arithmetic intensity (Op/Byte): "+ str(arithmetic_intensity_l1))
                 flog.write("\n=======================================================================================\n")
 
-                fout.write(str(m) + ", " + str(n) + ", " + str(k) + ", " + str(arithmetic_intensity_l1 < ridge_point_l1) + ", " \
+                fout.write(str(m) + ", " + str(n) + ", " + str(k) + ", "+str(arithmetic_intensity_l1 < ridge_point_l1) + ", " \
                            + str(arithmetic_intensity_l2 < ridge_point_l2) + ", " + str(arithmetic_intensity < ridge_point) + ", "\
                         #   + str(arithmetic_intensity_l1) + "," + str(arithmetic_intensity_l2) + "," + str(arithmetic_intensity) + ","\
-                          + "{:.2f}, {:.2f}, {:.2f}".format(arithmetic_intensity_l1, arithmetic_intensity_l2, arithmetic_intensity) + ", "\
+                            +  "{:.4f}, ".format(kernel_perf*1e-12) \
+                          + "{:.4f}, {:.4f}, {:.4f}".format(arithmetic_intensity_l1, arithmetic_intensity_l2, arithmetic_intensity) + ", "\
                         #   + str(peakl1_BW) + "," + str(peakl2_BW) + "," + str(peak_BW) + "," \
-                          + "{:.2f}, {:.2f}, {:.2f}".format(peakl1_BW*1e-9, peakl2_BW*1e-9, peak_BW*1e-9) + ", " \
+                          + "{:.4f}, {:.4f}, {:.4f}".format(peakl1_BW*1e-9, peakl2_BW*1e-9, peak_BW*1e-9) + ", " \
                         #   + str(ridge_point_l1) + "," + str(ridge_point_l2) + "," + str(ridge_point) + "\n" )
-                          + "{:.2f}, {:.2f}, {:.2f}".format(ridge_point_l1, ridge_point_l2, ridge_point) + "\n")
-flog = open(log_file, "w")
+                          + "{:.4f}, {:.4f}, {:.4f}".format(ridge_point_l1, ridge_point_l2, ridge_point) + "\n")
 flog.close()	
 
 
